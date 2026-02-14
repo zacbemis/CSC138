@@ -68,6 +68,9 @@ class ClientHandler implements Runnable {
                     System.out.println("send: " + response);
                 }
                 if ("BYE".equals(response)) {
+                    try {
+                        this.socket.close();
+                    } catch (IOException ignored) {}
                     break;
                 }
             }
@@ -89,15 +92,18 @@ class ClientHandler implements Runnable {
         String[] parts = trimmed.split("\\s+");
         String command = parts[0];
         if (command.equals("SUBMIT")) {
-            if (parts.length != 2) return usageError("SUBMIT", "<ms>");
+            if (parts.length != 2)
+                return usageError("SUBMIT", "<ms>");
             return handleSubmit(parts[1]);
         }
         if (command.equals("STATUS")) {
-            if (parts.length != 2) return usageError("STATUS", "<id>");
+            if (parts.length != 2)
+                return usageError("STATUS", "<id>");
             return handleStatus(parts[1]);
         }
         if (command.equals("CANCEL")) {
-            if (parts.length != 2) return usageError("CANCEL", "<id>");
+            if (parts.length != 2)
+                return usageError("CANCEL", "<id>");
             return handleCancel(parts[1]);
         }
         if (command.equals("QUIT")) {
@@ -109,7 +115,8 @@ class ClientHandler implements Runnable {
     private String handleSubmit(String ms) {
         try {
             long duration = Long.parseLong(ms);
-            if (duration <= 0) return badMsError();
+            if (duration <= 0)
+                return badMsError();
             Job job = registry.createJob(duration);
             return "JOB " + job.getId();
         } catch (NumberFormatException e) {
@@ -119,18 +126,23 @@ class ClientHandler implements Runnable {
 
     private String handleStatus(String idStr) {
         Long id = parseId(idStr);
-        if (id == null) return badIdError();
+        if (id == null)
+            return badIdError();
         Job job = registry.find(id);
-        if (job == null) return "STATUS " + id + " UNKNOWN";
+        if (job == null)
+            return "STATUS " + id + " UNKNOWN";
         return "STATUS " + id + " " + job.getState();
     }
 
     private String handleCancel(String idStr) {
         Long id = parseId(idStr);
-        if (id == null) return badIdError();
+        if (id == null)
+            return badIdError();
         Job job = registry.find(id);
-        if (job == null) return "NOTCANCELLED " + id + " UNKNOWN";
-        if (job.cancel()) return "CANCELLED " + id;
+        if (job == null)
+            return "NOTCANCELLED " + id + " UNKNOWN";
+        if (job.cancel())
+            return "CANCELLED " + id;
         return "NOTCANCELLED " + id + " " + job.getState();
     }
 
