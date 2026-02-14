@@ -5,6 +5,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
+import java.io.IOException;
 
 class SimpleServer {
     public static void main(String[] args) throws Exception {
@@ -15,11 +16,17 @@ class SimpleServer {
 
         JobRegistry registry = new JobRegistry();
         try (ServerSocket serverSocket = new ServerSocket(config.port)) {
+            if (config.verbose) {
+                System.out.println("Server started on port " + config.port);
+            }
             while (true) {
                 Socket socket = serverSocket.accept();
                 Thread connection = new Thread(new ClientHandler(socket, registry, config));
                 connection.start();
             }
+        } catch (Exception e) {
+            System.err.println("Error starting server: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
@@ -47,15 +54,32 @@ class ClientHandler implements Runnable {
 
     @Override
     public void run() {
-        // TODO: open the socket input and output streams
-        // TODO: read one line at a time from the client
-        // TODO: if verbose, print "recv: <line>"
-        // TODO: pass the line to handle(...) to get a response
-        // TODO: if verbose, print "send: <response>"
-        // TODO: send the response back to the client
-        // TODO: if the response is "BYE", exit the loop and close the socket
-        // TODO: handle exceptions without crashing the server
-        // TODO: make sure resources are closed even on errors
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
+            PrintWriter out = new PrintWriter(this.socket.getOutputStream(), true)) {
+            while (true) {
+                String line = in.readLine();
+                if (config.verbose) {
+                    System.out.println("recv: " + line);
+                }
+                String response = handle(line);
+                out.println(response);
+                if (config.verbose) {
+                    System.out.println("send: " + response);
+                }
+                if ("BYE".equals(response)) {
+                    break;
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading from socket: " + e.getMessage());
+            e.printStackTrace();
+                try {
+                    this.socket.close();
+                } catch (Exception ex) {
+                    System.err.println("Error closing socket: " + ex.getMessage());
+                    ex.printStackTrace();
+                }
+        }
     }
 
     private String handle(String line) {
